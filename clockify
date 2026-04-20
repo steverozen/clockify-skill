@@ -5,21 +5,24 @@ Requires env var CLOCKIFY_API_KEY.
 """
 
 import argparse
+import fcntl
 import fnmatch
 import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 API_BASE = "https://api.clockify.me/api/v1"
 PAGE_SIZE = 200
+MAX_RETRIES_429 = 3  # retries on HTTP 429; exponential backoff or Retry-After
 
 # Optional: when a timer is auto-stopped (because `start` was called while
 # another timer was running), append a warning bullet to this file under the
@@ -59,27 +62,49 @@ def api(method, path, body=None, query=None):
     url = API_BASE + path
     if query:
         url += "?" + urllib.parse.urlencode(query)
-    data = json.dumps(body).encode() if body is not None else None
+    payload = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(
-        url, data=data, method=method,
+        url, data=payload, method=method,
         headers={
             "X-Api-Key": _api_key(),
             "Content-Type": "application/json",
             "Accept": "application/json",
         },
     )
-    try:
-        with urllib.request.urlopen(req) as resp:
-            raw = resp.read()
-            return json.loads(raw) if raw else None
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        print(red(f"HTTP {e.code} {e.reason} on {method} {path}"), file=sys.stderr)
-        print(body, file=sys.stderr)
-        sys.exit(1)
-    except urllib.error.URLError as e:
-        print(red(f"Network error: {e.reason}"), file=sys.stderr)
-        sys.exit(1)
+    for attempt in range(MAX_RETRIES_429 + 1):
+        try:
+            with urllib.request.urlopen(req) as resp:
+                raw = resp.read()
+                if not raw:
+                    return None
+                try:
+                    return json.loads(raw)
+                except json.JSONDecodeError as e:
+                    snippet = raw[:200].decode("utf-8", errors="replace")
+                    print(red(f"ERROR: non-JSON response from {method} {path}: {e}"),
+                          file=sys.stderr)
+                    print(f"  Response preview: {snippet!r}", file=sys.stderr)
+                    sys.exit(1)
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < MAX_RETRIES_429:
+                retry_after = e.headers.get("Retry-After") if e.headers else None
+                try:
+                    wait = float(retry_after) if retry_after else 2 ** attempt
+                except ValueError:
+                    wait = 2 ** attempt
+                print(yellow(
+                    f"Rate limited (429) on {method} {path}; "
+                    f"retry {attempt + 1}/{MAX_RETRIES_429} in {wait:.1f}s…"
+                ), file=sys.stderr)
+                time.sleep(wait)
+                continue
+            err_body = e.read().decode("utf-8", errors="replace")
+            print(red(f"HTTP {e.code} {e.reason} on {method} {path}"), file=sys.stderr)
+            print(err_body, file=sys.stderr)
+            sys.exit(1)
+        except urllib.error.URLError as e:
+            print(red(f"Network error: {e.reason}"), file=sys.stderr)
+            sys.exit(1)
 
 
 def paged_get(path, query=None):
@@ -199,13 +224,27 @@ def log_auto_stop_to_priorities(client_name, project_name, start_utc, end_utc):
         f"(started {start_local}, stopped {end_local}). "
         f"You may have forgotten to stop it; adjust end time in Clockify UI if wrong."
     )
-    text = AUTOSTOP_LOG.read_text()
-    if AUTOSTOP_HEADING in text:
-        pattern = re.escape(AUTOSTOP_HEADING) + r"\n"
-        new_text, n = re.subn(pattern, AUTOSTOP_HEADING + "\n" + bullet + "\n", text, count=1)
-        if n:
-            AUTOSTOP_LOG.write_text(new_text)
-    # If heading missing, silently skip — not fatal
+    # Lock + read-modify-write so concurrent `clockify start` calls don't race.
+    try:
+        with open(AUTOSTOP_LOG, "r+", encoding="utf-8") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                text = f.read()
+                if AUTOSTOP_HEADING not in text:
+                    return  # heading missing — silently skip
+                pattern = re.escape(AUTOSTOP_HEADING) + r"\n"
+                new_text, n = re.subn(
+                    pattern, AUTOSTOP_HEADING + "\n" + bullet + "\n", text, count=1
+                )
+                if n:
+                    f.seek(0)
+                    f.write(new_text)
+                    f.truncate()
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+    except OSError as e:
+        print(yellow(f"Warning: could not update autostop log {AUTOSTOP_LOG}: {e}"),
+              file=sys.stderr)
 
 
 # ---------- Commands ----------

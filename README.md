@@ -1,6 +1,6 @@
 # clockify-skill
 
-**Version: v0.1.0 — alpha release.** Expect rough edges, breaking changes,
+**Version: v0.1.1 — alpha release.** Expect rough edges, breaking changes,
 and bugs. Test against a throwaway Clockify workspace before trusting it
 with billable time. Please file issues.
 

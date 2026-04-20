@@ -1,13 +1,13 @@
 ---
 name: clockify
 description: Clockify time tracking. Start/stop/list timers via natural language. Wraps the `clockify` CLI; uses case-insensitive globs to match clients and projects.
-version: 0.1.0
+version: 0.1.1
 user_invocable: true
 ---
 
 # Clockify Time Tracking
 
-> **Alpha (v0.1.0).** Behavior and flags may change. Verify start/stop times
+> **Alpha (v0.1.1).** Behavior and flags may change. Verify start/stop times
 > in the Clockify UI before trusting them for billing.
 
 ## When to Use
