@@ -42,6 +42,8 @@ This CLI does all three.
 
 ### 1. Clone
 
+**The code below assumes you are cloning to `~/github/clockify-skill`. If you are cloning somehwere else adjust the code accordingly.**
+
 ```bash
 git clone git@github.com:steverozen/clockify-skill.git ~/github/clockify-skill
 ```
