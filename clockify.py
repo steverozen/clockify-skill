@@ -18,7 +18,7 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 API_BASE = "https://api.clockify.me/api/v1"
 PAGE_SIZE = 200

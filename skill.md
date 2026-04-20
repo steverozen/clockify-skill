@@ -1,13 +1,13 @@
 ---
 name: clockify
-description: Clockify time tracking. Start/stop/list timers via natural language. Wraps the `clockify` CLI; uses case-insensitive globs to match clients and projects.
-version: 0.1.1
+description: Clockify time tracking. Start/stop/list timers via natural language. Wraps the colocated `clockify.py` CLI; uses case-insensitive globs to match clients and projects.
+version: 0.1.2
 user_invocable: true
 ---
 
 # Clockify Time Tracking
 
-> **Alpha (v0.1.1).** Behavior and flags may change. Verify start/stop times
+> **Alpha (v0.1.2).** Behavior and flags may change. Verify start/stop times
 > in the Clockify UI before trusting them for billing.
 
 ## When to Use
@@ -19,15 +19,26 @@ Any time the user mentions time tracking, timers, billable time, or names a clie
 - "list projects for <client>"
 - "what clients do I have matching <glob>?"
 
-## CLI Reference
+## Invoking the CLI
 
-The underlying tool is `clockify` (Python 3, stdlib only), typically symlinked onto `$PATH`:
+The `clockify.py` script ships in the same folder as this `skill.md`. **Do not rely on `$PATH`.** Invoke it by its absolute path. The canonical install location for a user-scoped skill is:
+
+```bash
+python3 ~/.claude/skills/clockify/clockify.py <subcommand> [args]
+```
+
+If installed elsewhere (e.g. a project-scoped `.claude/skills/clockify/`, or a different user-level path), substitute that directory. The script requires Python ≥ 3.8 (stdlib only, no `pip install`) and the env var `CLOCKIFY_API_KEY`.
+
+Throughout this skill, examples are written with `clockify` as shorthand for the full `python3 …/clockify.py` invocation — substitute the real path when running.
+
+## CLI Reference
 
 ```bash
 clockify ls [--client GLOB] [--project GLOB]
 clockify start CLIENT_GLOB PROJECT_GLOB [--description TEXT] [--billable]
 clockify stop
 clockify status
+clockify --version
 ```
 
 - **Globs are case-insensitive fnmatch** (`*`, `?`, `[abc]`). Quote them in shell: `'*feng*'`.
@@ -82,6 +93,8 @@ When the user says "switch to <client> <project>" or starts a new timer while an
 - **Surface the warning to the user immediately** — include the banner content in your reply so they see it.
 
 ## Common Patterns
+
+Remember: `clockify` below is shorthand for `python3 ~/.claude/skills/clockify/clockify.py` (or wherever the skill is installed).
 
 | User says | Run |
 |---|---|

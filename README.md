@@ -1,6 +1,6 @@
 # clockify-skill
 
-**Version: v0.1.1 — alpha release.** Expect rough edges, breaking changes,
+**Version: v0.1.2 — alpha release.** Expect rough edges, breaking changes,
 and bugs. Test against a throwaway Clockify workspace before trusting it
 with billable time. Please file issues.
 
@@ -8,11 +8,11 @@ Terminal CLI for [Clockify](https://clockify.me) time tracking — plus a
 [Claude Code](https://claude.com/claude-code) skill that wraps it so you can
 start, stop, and query timers via natural language.
 
-- **`clockify`** — Python 3 CLI (stdlib only, no `pip install`). Start / stop
+- **`clockify.py`** — Python 3 CLI (stdlib only, no `pip install`). Start / stop
   / list timers with case-insensitive globs.
-- **`skill.md`** — Claude Code skill definition. Drop into
-  `~/.claude/skills/clockify/` and Claude will invoke the CLI for you when
-  you say "start a timer for X" / "stop" / "what am I working on?".
+- **`skill.md`** — Claude Code skill definition. The whole repo installs as
+  one skill directory (see **Install** below), so `clockify.py` sits next to
+  `skill.md` and the skill invokes it by path — no `$PATH` dependency.
 
 ## Why
 
@@ -40,21 +40,48 @@ This CLI does all three.
 
 ## Install
 
+### 1. Clone
+
 ```bash
-# 1. Clone
 git clone git@github.com:steverozen/clockify-skill.git ~/github/clockify-skill
+```
 
-# 2. Put CLI on PATH
-ln -sf ~/github/clockify-skill/clockify ~/.local/bin/clockify
+### 2. Set your API key
 
-# 3. Set API key (get it at https://app.clockify.me/user/preferences#advanced
-#    → Manage API keys → Generate API key; copy immediately — shown only once)
+Get one at <https://app.clockify.me/user/preferences#advanced> → *Manage API
+keys* → *Generate API key* (copy immediately; shown only once).
+
+```bash
 export CLOCKIFY_API_KEY="..."
 echo 'export CLOCKIFY_API_KEY="..."' >> ~/.bashrc   # or source a ~/.secrets file
+```
 
-# 4. Test
+### 3. Install as a Claude Code skill (recommended)
+
+Symlink the whole repo into your Claude Code skills directory. The skill will
+invoke `clockify.py` by its path inside the skill folder, so no `$PATH`
+changes are required.
+
+```bash
+ln -s ~/github/clockify-skill ~/.claude/skills/clockify
+```
+
+Then in any Claude Code session:
+
+- "start a timer for obgyn feng"
+- "what am I working on?"
+- "stop"
+
+### 4. (Optional) Put the CLI on `$PATH` for interactive shell use
+
+If you also want to run `clockify` yourself from a terminal:
+
+```bash
+ln -sf ~/github/clockify-skill/clockify.py ~/.local/bin/clockify
 clockify ls
 ```
+
+The Claude Code skill does not depend on this symlink.
 
 ## Use
 
@@ -121,25 +148,6 @@ export CLOCKIFY_AUTOSTOP_HEADING="## Quick Tasks"   # optional override
 
 If `CLOCKIFY_AUTOSTOP_LOG` is unset, the banner still prints but nothing is
 written to disk.
-
-## Claude Code skill
-
-The `skill.md` file is a Claude Code skill definition. To install:
-
-```bash
-mkdir -p ~/.claude/skills/clockify
-ln -sf ~/github/clockify-skill/skill.md ~/.claude/skills/clockify/skill.md
-```
-
-Then in a Claude Code session:
-
-- "start a timer for obgyn feng"
-- "what am I working on?"
-- "stop"
-- "list obgyn projects"
-
-Claude will run the right `clockify` command, surface the result, and
-prominently warn you about any auto-stopped timers.
 
 ## Clockify API gotchas
 
