@@ -16,6 +16,8 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+__version__ = "0.1.0"
+
 API_BASE = "https://api.clockify.me/api/v1"
 PAGE_SIZE = 200
 
@@ -379,6 +381,8 @@ def main():
         prog="clockify",
         description="Clockify time tracker — start, stop, ls (case-insensitive globs).",
     )
+    p.add_argument("--version", action="version",
+                   version=f"%(prog)s {__version__} (alpha)")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     s = sub.add_parser("start", help="Start a timer on a client/project")

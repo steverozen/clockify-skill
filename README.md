@@ -1,5 +1,9 @@
 # clockify-skill
 
+**Version: v0.1.0 — alpha release.** Expect rough edges, breaking changes,
+and bugs. Test against a throwaway Clockify workspace before trusting it
+with billable time. Please file issues.
+
 Terminal CLI for [Clockify](https://clockify.me) time tracking — plus a
 [Claude Code](https://claude.com/claude-code) skill that wraps it so you can
 start, stop, and query timers via natural language.
